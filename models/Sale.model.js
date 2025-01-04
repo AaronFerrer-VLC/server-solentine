@@ -2,6 +2,11 @@ const { Schema, model } = require("mongoose")
 
 const saleSchema = new Schema(
     {
+        Día: {
+            type: Number,
+            required: [true, 'Escribe el día']
+        },
+
         Mes: {
             type: Number,
             required: [true, 'Escribe el mes']

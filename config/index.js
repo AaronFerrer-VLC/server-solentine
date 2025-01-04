@@ -1,9 +1,9 @@
-const express = require("express");
-const logger = require("morgan");
-const cookieParser = require("cookie-parser");
-const cors = require("cors");
+const express = require("express")
+const logger = require("morgan")
+const cookieParser = require("cookie-parser")
+const cors = require("cors")
 
-const FRONTEND_URL = process.env.ORIGIN;
+const FRONTEND_URL = process.env.ORIGIN
 
 module.exports = (app) => {
   app.set("trust proxy", 1)

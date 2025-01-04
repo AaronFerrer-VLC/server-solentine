@@ -1,113 +1,97 @@
 const axios = require('axios')
+
 const mongoose = require('mongoose')
-const User = require('../models/User.model')
 const Sale = require('../models/Sale.model')
-const { response } = require('express')
+const User = require('../models/User.model')
+
 
 const getAllSales = (req, res, next) => {
     Sale
         .find()
-        .then(response => {
-            const unOrderedSales = response
-            const orderedSales = unOrderedSales.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-            res.json(orderedSales)
-        })
+        .sort({ createdAt: -1 })
+        .then(sales => res.json(sales))
         .catch(err => next(err))
 }
 
 const getOneSale = (req, res, next) => {
-
     const { id: saleId } = req.params
+    console.log("ID recibido en el servidor:", saleId)
 
     if (!mongoose.Types.ObjectId.isValid(saleId)) {
-        res.status(404).json({ message: "Id format not valid" });
-        return
+        return res.status(404).json({ message: "Sale ID is not valid" });
     }
 
-    Sale
-        .findById(saleId)
-        .then(sale => res.json(sale))
+    Sale.findById(saleId)
+    console.log("ID recibido en el servidor:", saleId)
+        .then(sale => {
+            if (!sale) return res.status(404).json({ message: "Sale not found" })
+            res.json(sale)
+        })
         .catch(err => next(err))
 }
 
 const saveSale = (req, res, next) => {
+    const { Día, Mes, MImp, Año, Fecha, Negocio, Zona, Marca, Cliente, Importe, owner } = req.body
 
-    const { Mes, MImp, Año, Fecha, Negocio, Zona, Marca, Cliente, Importe } = req.body
-
-    Sale
-        .create({ Mes, MImp, Año, Fecha, Negocio, Zona, Marca, Cliente, Importe })
+    Sale.create({ Día, Mes, MImp, Año, Fecha, Negocio, Zona, Marca, Cliente, Importe, owner })
         .then(sale => {
-            res.status(201).json(sale)
-            return (sale._id)
-        })
-        .then(saleId => {
-
-            User
-                .findByIdAndUpdate(
+            if (owner) {
+                return User.findByIdAndUpdate(
                     owner,
-                    { $push: { sales: saleId } },
+                    { $push: { sales: sale._id } },
                     { new: true, runValidators: true }
-                )
-                .then()
-                .catch(err => next(err))
-
+                ).then(() => sale)
+            }
+            return sale
         })
+        .then(sale => res.status(201).json(sale))
         .catch(err => next(err))
-}
+};
 
 const deleteSale = (req, res, next) => {
-
     const { id: saleId } = req.params
 
-    if (!mongoose.Types.ObjectId.isValid(communityId)) {
-        res.status(404).json({ message: "Id format not valid" });
-        return
-    }
+    if (!validateId(saleId, res)) return
 
-
-    Sale
-        .findById(saleId)
-        .then(sale => { return sale })
+    Sale.findById(saleId)
         .then(sale => {
-            console.log(sale)
+            if (!sale) return res.status(404).json({ message: "Sale not found" })
+
             const { owner } = sale
 
-            User
-                .findByIdAndUpdate(
-                    owner,
-                    { $pull: { sales: saleId } },
-                    { new: true, runValidators: true }
+            const promises = [Sale.findByIdAndDelete(saleId)]
+            if (owner) {
+                promises.push(
+                    User.findByIdAndUpdate(
+                        owner,
+                        { $pull: { sales: saleId } },
+                        { new: true, runValidators: true }
+                    )
                 )
-                .then()
-                .catch(err => next(err))
+            }
 
+            return Promise.all(promises)
         })
-        .catch(err => next(err))
-
-    Sale
-        .findByIdAndDelete(saleId)
         .then(() => res.sendStatus(200))
         .catch(err => next(err))
-
 }
 
 const editSale = (req, res, next) => {
+    const { Día, Mes, MImp, Año, Fecha, Negocio, Zona, Marca, Cliente, Importe } = req.body
+    const { id: saleId } = req.params;
 
-    const { Mes, MImp, Año, Fecha, Negocio, Zona, Marca, Cliente, Importe } = req.body
-    const { id: saleId } = req.params
-
-    if (!mongoose.Types.ObjectId.isValid(saleId)) {
-        res.status(404).json({ message: "Id format not valid" });
-        return
-    }
+    if (!validateId(saleId, res)) return
 
     Sale
         .findByIdAndUpdate(
             saleId,
-            { Mes, MImp, Año, Fecha, Negocio, Zona, Marca, Cliente, Importe },
-            { runValidators: true }
+            { Día, Mes, MImp, Año, Fecha, Negocio, Zona, Marca, Cliente, Importe },
+            { new: true, runValidators: true }
         )
-        .then(() => res.sendStatus(200))
+        .then(updatedSale => {
+            if (!updatedSale) return res.status(404).json({ message: "Sale not found" })
+            res.sendStatus(200)
+        })
         .catch(err => next(err))
 }
 

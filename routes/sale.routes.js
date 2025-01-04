@@ -24,10 +24,10 @@ router.get('/sales/search/:querySearch', async (req, res, next) => {
     }
 })
 
-router.post('/sales', verifyToken, saveSale)
-router.put('/sales/:id', verifyToken, editSale)
+router.post('/sales', saveSale)
+router.put('/sales/:id', editSale)
 router.get('/sales/', getAllSales)
 router.get('/sales/:id', getOneSale)
-router.delete('/sales/:id', verifyToken, deleteSale)
+router.delete('/sales/:id', deleteSale)
 
 module.exports = router
