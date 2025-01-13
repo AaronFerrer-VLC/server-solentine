@@ -16,7 +16,7 @@ const userSchema = new Schema(
       type: String,
       required: [true, 'El nombre de usuario es obligatorio'],
       minlength: [3, 'El usuario necesita mínimo 3 caracteres'],
-      match: [/^\w+$/, 'El nombre de usuario debe ser una sola palabra sin espacios ni caracteres especiales']
+      match: [/^[\wáéíóúüñÁÉÍÓÚÜÑ]+$/, 'El nombre de usuario debe ser una sola palabra sin espacios ni caracteres especiales']
     },
     avatar: {
       type: String,
@@ -29,12 +29,12 @@ const userSchema = new Schema(
     },
     role: {
       type: String,
-      enum: ["ADMIN", "USER"],
-      default: 'USER'
+      enum: ['user', 'admin'],
+      default: 'user'
     },
     sales: [{
       type: Schema.Types.ObjectId,
-      ref: 'Sales'
+      ref: 'Sale'
     }],
   },
   {

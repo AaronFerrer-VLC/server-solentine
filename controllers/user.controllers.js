@@ -1,75 +1,25 @@
-const mongoose = require('mongoose')
-const User = require('../models/User.model')
+const User = require('../models/User.model');
+const mongoose = require('mongoose');
 
-const getUser = (req, res, next) => {
-    const { id: userId } = req.params
+const getAllUsers = async (req, res, next) => {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
 
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-        return res.status(400).json({ message: "User ID format is not valid" });
+    try {
+        const users = await User.find().skip(skip).limit(Number(limit));
+        res.json(users);
+    } catch (error) {
+        next(error);
     }
+};
 
-    User
-        .findById(userId)
-        .populate('communities')
-        .then(user => {
-            if (!user) {
-                return res.status(404).json({ message: "User not found" })
-            }
-            res.json(user)
-        })
-        .catch(err => {
-            console.error("Error fetching user:", err)
-            next(err)
-        })
-}
+const getAllUsersPopulated = async (req, res, next) => {
 
-const editUser = (req, res, next) => {
-
-    const { _id, firstName, email, username, role, sales } = req.body
-
-    if (!mongoose.Types.ObjectId.isValid(_id)) {
-        return res.status(400).json({ message: "User ID format is not valid" });
-    }
-
-    User
-        .findByIdAndUpdate(
-            _id,
-            { firstName, email, username, role, sales },
-            { runValidators: true }
-        )
-        .then(() => res.sendStatus(200))
-        .catch(err => next(err))
-
-}
-
-const getAllUsers = (req, res, next) => {
     const { page = 1, limit = 10 } = req.query
-
 
     User
         .find()
-        .skip((page - 1) * limit)
-        .limit(Number(limit))
-        .then(users => {
-            if (users.length === 0) {
-                return res.status(404).json({ message: "No users found" });
-            }
-            res.json(users)
-        })
-        .catch(err => {
-            console.error("Error fetching users:", err)
-            next(err)
-        })
-}
-
-const getAllUsersPopulated = (req, res, next) => {
-    const { page = 1, limit = 10 } = req.query
-
-
-    User
-        .find()
-        .skip((page - 1) * limit)
+        .skip((page - 1) * Number(limit))
         .limit(Number(limit))
         .populate('sales')
         .then(users => {
@@ -82,34 +32,92 @@ const getAllUsersPopulated = (req, res, next) => {
             console.error("Error fetching users:", err)
             next(err)
         })
-}
+};
 
+const getUser = async (req, res, next) => {
+    const { id } = req.params;
+    console.log('cual es el id del usuario:', id);
 
-const filterUsers = (query) => {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+    }
 
-    const newQuery = query
+    try {
+        const user = await User.findById(id).populate('sales');
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.json(user);
+    } catch (error) {
+        next(error);
+    }
+};
 
+const editUser = async (req, res, next) => {
+    const { id } = req.params;
+    const { username, email, role } = req.body;
+    const avatar = req.file ? req.file.path : null;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const updateData = { username, email, role };
+    if (avatar) {
+        updateData.avatar = avatar;
+    }
+
+    try {
+        const updatedUser = await User.findByIdAndUpdate(
+            id, updateData, { new: true, runValidators: true }
+        );
+        if (!updatedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.json(updatedUser);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const filterUsers = async (req, res, next) => {
+    const { query } = req.query
 
     if (!query) {
-        return res.status(400).json({ message: "Please provide a search term" })
+        return res.status(400).json({ message: "Search query is required" });
     }
 
-    const querySearch = {
-        $or: [
-            { username: { $regex: newQuery, $options: 'i' } },
-            { email: { $regex: newQuery, $options: 'i' } }
-        ]
+    try {
+        const users = await User.find({ $text: { $search: query } });
+        res.json(users)
+    } catch (error) {
+        next(error)
     }
-    return User
-        .find(querySearch)
-        .then(users => users)
-        .catch(err => console.log(err))
 }
+
+const deleteUser = async (req, res, next) => {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    try {
+        const deletedUser = await User.findByIdAndDelete(id);
+        if (!deletedUser) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        res.json({ message: "User deleted successfully" });
+    } catch (error) {
+        next(error);
+    }
+};
 
 module.exports = {
+    getAllUsers,
+    getAllUsersPopulated,
     getUser,
     editUser,
-    getAllUsersPopulated,
     filterUsers,
-    getAllUsers
-}
+    deleteUser
+};

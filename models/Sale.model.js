@@ -2,6 +2,10 @@ const { Schema, model } = require("mongoose")
 
 const saleSchema = new Schema(
     {
+        Id: {
+            type: Number,
+            required: [true, 'Escribe el Id']
+        },
         Día: {
             type: Number,
             required: [true, 'Escribe el día']
@@ -10,10 +14,6 @@ const saleSchema = new Schema(
         Mes: {
             type: Number,
             required: [true, 'Escribe el mes']
-        },
-        MImp: {
-            type: Number,
-            required: [true, 'Escribe el MImp']
         },
         Año: {
             type: Number,
@@ -55,6 +55,30 @@ const saleSchema = new Schema(
         Importe: {
             type: Number,
             required: [true, 'introduce el importe'],
+        },
+        Comercial: {
+            type: String,
+            required: [true, 'Escribe el comercial']
+        },
+        createdBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+
+        updatedBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: false,
+        },
+        deletedBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            required: false,
+        },
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: 'User'
         }
     }
 )

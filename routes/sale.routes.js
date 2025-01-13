@@ -3,31 +3,38 @@ const {
     getAllSales,
     getOneSale,
     saveSale,
-    editSale
-
-} = require("../controllers/sale.controllers")
+    editSale,
+    filterSales
+} = require('../controllers/sale.controllers')
 
 const verifyToken = require("../middlewares/verifyToken")
 
 const router = require("express").Router()
 
-router.get('/sales/search/:querySearch', async (req, res, next) => {
-    const { querySearch } = req.params
+
+router.get('/sales/search', async (req, res, next) => {
+    const { id, year, business, zone, brand, client, comercial, sortBy, dateBy, idBy, page, limit } = req.query;
 
     try {
-        const response = await filterSales(querySearch)
-        console.log(response)
-        res.json(response)
-    }
-    catch (error) {
-        next(error)
+        const response = await filterSales({ id, year, business, zone, brand, client, comercial, sortBy, dateBy, idBy }, page, limit);
+        res.json(response);
+    } catch (error) {
+        next(error);
     }
 })
 
-router.post('/sales', saveSale)
-router.put('/sales/:id', editSale)
-router.get('/sales/', getAllSales)
-router.get('/sales/:id', getOneSale)
-router.delete('/sales/:id', deleteSale)
+router.post('/sales', verifyToken, saveSale);
 
-module.exports = router
+// Ruta para editar una venta (requiere autenticación)
+router.put('/sales/:id', verifyToken, editSale);
+
+// Ruta para obtener todas las ventas
+router.get('/sales', getAllSales);
+
+// Ruta para obtener una venta por ID
+router.get('/sales/:id', getOneSale);
+
+// Ruta para eliminar una venta (requiere autenticación)
+router.delete('/sales/:id', verifyToken, deleteSale);
+
+module.exports = router;

@@ -1,7 +1,7 @@
 const {
     signupUser,
     loginUser,
-    verifyUser,
+    verifyUser
 
 } = require("../controllers/auth.controllers.js")
 
