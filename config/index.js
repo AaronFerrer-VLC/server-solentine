@@ -3,7 +3,7 @@ const logger = require("morgan")
 const cookieParser = require("cookie-parser")
 const cors = require("cors")
 
-const FRONTEND_URL = process.env.ORIGIN || 'https://solentine.netlify.app/'
+const FRONTEND_URL = process.env.ORIGIN || 'https://solentine.netlify.app'
 
 module.exports = (app) => {
   app.set("trust proxy", 1)
