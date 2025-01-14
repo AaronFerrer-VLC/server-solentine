@@ -14,4 +14,16 @@ module.exports = app => {
 
     const uploadRouter = require("./upload.routes")
     app.use("/api/upload", uploadRouter)
+
+    const zoneRouter = require("./zone.routes")
+    app.use("/api/zones", zoneRouter)
+
+    const brandRouter = require("./brand.routes")
+    app.use("/api/brands", brandRouter)
+
+    const clientRouter = require("./client.routes")
+    app.use("/api/clients", clientRouter)
+
+    const comercialRouter = require("./comercial.routes")
+    app.use("/api/comercials", comercialRouter)
 }

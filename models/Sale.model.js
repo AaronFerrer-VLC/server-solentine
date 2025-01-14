@@ -32,33 +32,28 @@ const saleSchema = new Schema(
             }
         },
         Zona: {
-            type: String,
-            required: [true, 'Selecciona un cliente'],
-            validate: {
-                validator: Zona => Zona.length >= 1,
-                message: 'Selecciona un cliente'
-            }
+            type: Schema.Types.ObjectId,
+            ref: 'Zone',
+            // required: true
         },
         Marca: {
-            type: String,
-            required: [true, 'Introduce una marca']
-
+            type: Schema.Types.ObjectId,
+            ref: 'Brand',
+            // required: true
         },
         Cliente: {
-            type: String,
-            required: [true, 'Selecciona un cliente'],
-            validate: {
-                validator: Cliente => Cliente.length >= 1,
-                message: 'Selecciona un cliente'
-            }
+            type: Schema.Types.ObjectId,
+            ref: 'Client',
+            // required: true
         },
         Importe: {
             type: Number,
             required: [true, 'introduce el importe'],
         },
         Comercial: {
-            type: String,
-            required: [true, 'Escribe el comercial']
+            type: Schema.Types.ObjectId,
+            ref: 'Comercial',
+            // required: true
         },
         createdBy: {
             type: Schema.Types.ObjectId,

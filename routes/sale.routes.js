@@ -4,7 +4,8 @@ const {
     getOneSale,
     saveSale,
     editSale,
-    filterSales
+    filterSales,
+    getAllSalesForHomePage
 } = require('../controllers/sale.controllers')
 
 const verifyToken = require("../middlewares/verifyToken")
@@ -30,6 +31,8 @@ router.put('/sales/:id', verifyToken, editSale);
 
 // Ruta para obtener todas las ventas
 router.get('/sales', getAllSales);
+
+router.get('/sales/all', getAllSalesForHomePage)
 
 // Ruta para obtener una venta por ID
 router.get('/sales/:id', getOneSale);
