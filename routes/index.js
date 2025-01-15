@@ -26,4 +26,7 @@ module.exports = app => {
 
     const comercialRouter = require("./comercial.routes")
     app.use("/api/comercials", comercialRouter)
+
+    const geocodingRouter = require("./geocoding.routes");
+    app.use("/api/geocoding", geocodingRouter)
 }
