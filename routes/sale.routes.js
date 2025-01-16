@@ -5,7 +5,8 @@ const {
     saveSale,
     editSale,
     filterSales,
-    getAllSalesForHomePage
+    getAllSalesForHomePage,
+    getAllSalesWithoutPagination // Import the new function
 } = require('../controllers/sale.controllers')
 
 const verifyToken = require("../middlewares/verifyToken")
@@ -32,7 +33,11 @@ router.put('/sales/:id', verifyToken, editSale);
 // Ruta para obtener todas las ventas
 router.get('/sales', getAllSales);
 
+// Ruta para obtener todas las ventas para la página de inicio
 router.get('/sales/all', getAllSalesForHomePage)
+
+// Ruta para obtener todas las ventas sin paginación
+router.get('/sales/all-without-pagination', getAllSalesWithoutPagination);
 
 // Ruta para obtener una venta por ID
 router.get('/sales/:id', getOneSale);
