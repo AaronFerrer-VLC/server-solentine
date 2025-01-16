@@ -45,4 +45,6 @@ router.get('/sales/:id', getOneSale);
 // Ruta para eliminar una venta (requiere autenticación)
 router.delete('/sales/:id', verifyToken, deleteSale);
 
+router.get('/all', getAllSalesForHomePage);
+
 module.exports = router;
