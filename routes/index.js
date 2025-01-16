@@ -4,10 +4,10 @@ module.exports = app => {
     app.use("/api/auth", authRouter)
 
     const saleRouter = require("./sale.routes")
-    app.use("/api", saleRouter)
+    app.use("/api/", saleRouter)
 
     const userRouter = require("./user.routes")
-    app.use("/api", userRouter)
+    app.use("/api/", userRouter)
 
     const rolesRouter = require("./roles.routes")
     app.use("/api/roles", rolesRouter)
@@ -28,5 +28,5 @@ module.exports = app => {
     app.use("/api/comercials", comercialRouter)
 
     const geocodingRouter = require("./geocoding.routes");
-    app.use("/api/geocoding", geocodingRouter)
+    app.use("/api/geocoding", geocodingRouter);
 }

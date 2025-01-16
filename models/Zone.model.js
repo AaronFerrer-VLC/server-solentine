@@ -7,7 +7,8 @@ const zoneSchema = new Schema({
     position: {
         lat: { type: Number, required: true },
         lng: { type: Number, required: true }
-    }
+    },
+    sales: [{ type: Schema.Types.ObjectId, ref: 'Sale' }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Zone', zoneSchema);

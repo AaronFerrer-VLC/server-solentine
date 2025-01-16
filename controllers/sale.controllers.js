@@ -27,7 +27,7 @@ const getAllSales = async (req, res, next) => {
             .populate('Marca')
             .populate('Cliente')
             .populate('Comercial')
-            .sort(sort)
+            .sort(sort) // Apply sorting before pagination
             .skip(skip)
             .limit(Number(limit));
 
@@ -230,6 +230,20 @@ const filterSales = async (filters) => {
     }
 }
 
+const getAllSalesWithoutPagination = async (req, res, next) => {
+    try {
+        const sales = await Sale.find()
+            .populate('Zona')
+            .populate('Marca')
+            .populate('Cliente')
+            .populate('Comercial')
+            .sort({ Fecha: 'asc' }); // Sort by date
+        res.json({ sales });
+    } catch (err) {
+        next(err);
+    }
+}
+
 module.exports = {
     getAllSales,
     getOneSale,
@@ -238,4 +252,5 @@ module.exports = {
     editSale,
     filterSales,
     getAllSalesForHomePage,
+    getAllSalesWithoutPagination, // Export the new function
 };
