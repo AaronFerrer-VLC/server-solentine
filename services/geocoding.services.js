@@ -1,5 +1,5 @@
-const axios = require('axios');
-const crypto = require('crypto');
+const axios = require('axios')
+const crypto = require('crypto')
 
 const GOOGLE_MAPS_API_BASE_URL = process.env.GOOGLE_MAPS_BASE_URL;
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
@@ -33,4 +33,4 @@ class GeocodingService {
     }
 }
 
-module.exports = new GeocodingService();
+module.exports = new GeocodingService()
