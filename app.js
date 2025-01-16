@@ -1,29 +1,16 @@
-require("dotenv").config()
-require("./db")
+require("dotenv").config();
+require("./db");
 
-const express = require("express")
-const cors = require("cors")
-const app = express()
+const express = require("express");
+const app = express();
+const path = require("path");
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-const corsOptions = {
-    origin: function (origin, callback) {
-        if (process.env.NODE_ENV === 'production') {
-            callback(null, 'https://solentine.netlify.app')
-        } else {
-            callback(null, 'http://localhost:5173')
-        }
-    },
-    optionsSuccessStatus: 200
-};
+require("./config")(app);
 
-app.use(cors(corsOptions))
+require("./routes")(app);
+require("./error-handling")(app);
 
-require("./config")(app)
-require("./routes")(app)
-require("./error-handling")(app)
-
-module.exports = app
-
+module.exports = app;
