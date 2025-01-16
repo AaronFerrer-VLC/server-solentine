@@ -6,13 +6,6 @@ const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 const GOOGLE_MAPS_SECRET = process.env.GOOGLE_MAPS_SECRET;
 
 // Remove the signUrl function as it is no longer needed
-// function signUrl(url, secret) {
-//     const urlObj = new URL(url);
-//     const baseString = urlObj.pathname + urlObj.search;
-//     const decodedSecret = Buffer.from(secret, 'base64');
-//     const signature = crypto.createHmac('sha1', decodedSecret).update(baseString).digest('base64');
-//     return signature.replace(/\+/g, '-').replace(/\//g, '_');
-// }
 
 class GeocodingService {
     constructor() {
