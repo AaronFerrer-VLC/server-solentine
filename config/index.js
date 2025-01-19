@@ -10,7 +10,7 @@ module.exports = (app) => {
 
   app.use(
     cors({
-      origin: [FRONTEND_URL, 'https://solentine.netlify.app'],
+      origin: [FRONTEND_URL],
       credentials: true
     })
   )
