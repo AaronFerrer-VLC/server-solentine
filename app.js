@@ -1,8 +1,5 @@
-require("dotenv").config({
-    path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env'
-})
-
 require("./db")
+require("dotenv").config()
 
 const express = require("express")
 const app = express()

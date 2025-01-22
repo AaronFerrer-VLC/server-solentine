@@ -20,8 +20,10 @@ FROM base as build
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
 
+# Copy package.json and package-lock.json to the /app directory
+COPY package*.json ./
+
 # Install node modules
-COPY package-lock.json package.json ./
 RUN npm ci
 
 # Copy application code
@@ -32,7 +34,7 @@ COPY . .
 FROM base
 
 # Copy built application
-COPY --from=build /app /appfly
+COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 5005
