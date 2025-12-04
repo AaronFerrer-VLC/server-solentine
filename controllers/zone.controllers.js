@@ -1,4 +1,7 @@
 const Zone = require('../models/Zone.model');
+const { Client: GoogleMapsClient } = require('@googlemaps/google-maps-services-js');
+
+const googleMapsClient = new GoogleMapsClient({});
 
 const getAllZones = async (req, res, next) => {
     try {

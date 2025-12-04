@@ -1,74 +1,123 @@
 const User = require('../models/User.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { ConflictError, AuthenticationError } = require('../utils/errors');
 const saltRounds = 10;
 
-const signupUser = (req, res, next) => {
-    const { username, email, password, avatar, firstName, familyName, role } = req.body;
-
-    if (email === '' || password === '' || username === '') {
-        return res.status(400).json({ message: "Provide email, password and name" });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: 'Provide a valid email address.' });
-    }
-
-    if (password.length < 3) {
-        return res.status(400).json({ message: 'Password too short.' });
-    }
-
-    User.findOne({ email })
-        .then(user => {
-            if (user) {
-                return res.status(409).json({ message: 'Usuario ya registrado' });
-            }
-
-            const salt = bcrypt.genSaltSync(saltRounds);
-            const hashedPassword = bcrypt.hashSync(password, salt);
-
-            return User.create({ username, email, password: hashedPassword, avatar, firstName, familyName, role });
-        })
-        .then(newUser => res.status(201).json(newUser))
-        .catch(err => next(err));
-};
-
-const loginUser = async (req, res, next) => {
-    const { password, email } = req.body;
-
-    if (email === '' || password === '') {
-        return res.status(400).json({ message: 'Provide username and password.' });
-    }
-
+/**
+ * Signup User Controller
+ * Creates a new user account
+ */
+const signupUser = async (req, res, next) => {
     try {
-        const user = await User.findOne({ email });
+        const { username, email, password, avatar, firstName, familyName, role } = req.body;
 
-        if (!user) {
-            return res.status(401).json({ message: "User not found." });
-        }
-
-        const isCorrectPwd = bcrypt.compareSync(password, user.password);
-
-        if (!isCorrectPwd) {
-            return res.status(401).json({ message: "Unable to authenticate the user" });
-        }
-
-        const payload = { userId: user._id, role: user.role };
-
-        const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
-            algorithm: 'HS256',
-            expiresIn: "6h",
+        // Check if user already exists
+        const existingUser = await User.findOne({ 
+            $or: [{ email }, { username }] 
         });
 
-        return res.json({ authToken, userId: user._id });
+        if (existingUser) {
+            if (existingUser.email === email) {
+                return next(new ConflictError('Email already registered'));
+            }
+            if (existingUser.username === username) {
+                return next(new ConflictError('Username already taken'));
+            }
+        }
+
+        // Hash password
+        const salt = bcrypt.genSaltSync(saltRounds);
+        const hashedPassword = bcrypt.hashSync(password, salt);
+
+        // Create user (role is set to 'user' by default unless explicitly set to 'admin' by admin)
+        const userRole = role === 'admin' && req.user?.role === 'admin' ? 'admin' : 'user';
+
+        const newUser = await User.create({
+            username,
+            email,
+            password: hashedPassword,
+            avatar,
+            firstName,
+            familyName,
+            role: userRole
+        });
+
+        // Remove password from response
+        const userResponse = newUser.toObject();
+        delete userResponse.password;
+
+        res.status(201).json({
+            status: 'success',
+            message: 'User created successfully',
+            user: userResponse
+        });
     } catch (err) {
         next(err);
     }
 };
 
+/**
+ * Login User Controller
+ * Authenticates user and returns JWT token
+ */
+const loginUser = async (req, res, next) => {
+    try {
+        const { password, email } = req.body;
+
+        // Find user by email
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return next(new AuthenticationError('Invalid email or password'));
+        }
+
+        // Verify password
+        const isCorrectPwd = bcrypt.compareSync(password, user.password);
+
+        if (!isCorrectPwd) {
+            return next(new AuthenticationError('Invalid email or password'));
+        }
+
+        // Generate JWT token
+        const payload = { userId: user._id, role: user.role };
+
+        const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
+            algorithm: 'HS256',
+            expiresIn: process.env.JWT_EXPIRES_IN || "6h",
+        });
+
+        // Remove password from user object
+        const userResponse = user.toObject();
+        delete userResponse.password;
+
+        res.json({
+            status: 'success',
+            message: 'Login successful',
+            authToken,
+            user: userResponse
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * Verify User Controller
+ * Returns current authenticated user data
+ */
 const verifyUser = (req, res, next) => {
-    res.json({ loggedUserData: req.user });
+    try {
+        const userResponse = req.user.toObject();
+        delete userResponse.password;
+
+        res.json({
+            status: 'success',
+            loggedUserData: userResponse
+        });
+    } catch (err) {
+        next(err);
+    }
 };
 
 module.exports = {
