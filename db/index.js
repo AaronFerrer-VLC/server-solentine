@@ -23,8 +23,10 @@ const connectDB = async () => {
       maxPoolSize: 10, // Maintain up to 10 socket connections
       serverSelectionTimeoutMS: 10000, // Aumentado a 10 segundos para dar más tiempo
       socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
-      bufferMaxEntries: 0, // Disable mongoose buffering
-      bufferCommands: false, // Disable mongoose buffering
+      // IMPORTANTE: bufferCommands debe ser true para que las queries se encolen
+      // hasta que la conexión esté lista. Si es false, las queries fallan si
+      // se ejecutan antes de que MongoDB se conecte.
+      bufferCommands: true, // Enable buffering - queries se encolan hasta conexión
       retryWrites: true,
       retryReads: true,
     }
