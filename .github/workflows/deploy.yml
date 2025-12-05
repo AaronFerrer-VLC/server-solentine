@@ -1,0 +1,45 @@
+name: Deploy to Fly.io
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Permite ejecutar manualmente
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Verify deployment
+        run: |
+          echo "✅ Deployment successful!"
+          echo "🌐 Server URL: https://server-solentine.fly.dev"
+          flyctl status --app server-solentine
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+

@@ -92,6 +92,13 @@ module.exports = (app) => {
   app.use(express.urlencoded({ extended: true, limit: '10mb' }))
   app.use(cookieParser())
 
-  // Apply rate limiting to all routes
-  app.use('/api/', apiLimiter)
+  // Apply rate limiting to all routes EXCEPT auth routes
+  // Auth routes tienen su propio rate limiter más estricto
+  app.use('/api/', (req, res, next) => {
+    // Skip rate limiting for auth routes (they have their own limiter)
+    if (req.path.startsWith('/auth')) {
+      return next();
+    }
+    apiLimiter(req, res, next);
+  })
 }
