@@ -26,26 +26,68 @@ const createClient = async (req, res, next) => {
     try {
         const { address, ...clientData } = req.body;
 
-        const response = await googleMapsClient.geocode({
-            params: {
-                address,
-                key: process.env.GOOGLE_MAPS_API_KEY
+        // Solo geocodificar si se proporciona una dirección
+        // Si el cliente ya tiene coordenadas, usarlas directamente
+        let position = null;
+
+        if (address) {
+            try {
+                const response = await googleMapsClient.geocode({
+                    params: {
+                        address,
+                        key: process.env.GOOGLE_MAPS_API_KEY
+                    }
+                });
+
+                // Verificar errores de Google Maps
+                if (response.data.status && response.data.status !== 'OK') {
+                    // Si es error de facturación, dar mensaje más claro
+                    if (response.data.status === 'REQUEST_DENIED' && response.data.error_message?.includes('billing')) {
+                        return res.status(503).json({ 
+                            status: 'error',
+                            message: 'El servicio de geocodificación no está disponible. Contacta con el administrador.',
+                            code: 'BILLING_NOT_ENABLED'
+                        });
+                    }
+                    
+                    return res.status(400).json({ 
+                        status: 'error',
+                        message: response.data.error_message || `Error de geocodificación: ${response.data.status}`,
+                        code: response.data.status
+                    });
+                }
+
+                if (response.data.results.length === 0) {
+                    return res.status(400).json({ 
+                        status: 'error',
+                        message: 'No se encontraron coordenadas para la dirección proporcionada.' 
+                    });
+                }
+
+                const { lat, lng } = response.data.results[0].geometry.location;
+                position = { lat, lng };
+            } catch (err) {
+                // Manejar errores de la API de Google Maps
+                console.error('Error en geocodificación:', err.message);
+                
+                // Si es error de facturación, no fallar silenciosamente
+                if (err.message?.includes('billing') || err.code === 'BILLING_NOT_ENABLED') {
+                    return res.status(503).json({ 
+                        status: 'error',
+                        message: 'El servicio de geocodificación no está disponible temporalmente.',
+                        code: 'BILLING_NOT_ENABLED'
+                    });
+                }
+                
+                // Para otros errores, permitir crear el cliente sin coordenadas
+                console.warn('⚠️  Cliente creado sin coordenadas debido a error de geocodificación');
             }
-        });
-
-        if (response.data.results.length === 0) {
-            return res.status(400).json({ message: 'No se encontraron coordenadas para la dirección proporcionada.' });
         }
-
-        const { lat, lng } = response.data.results[0].geometry.location;
 
         const newClient = new Client({
             ...clientData,
             address,
-            position: {
-                lat,
-                lng
-            }
+            ...(position && { position })
         });
 
         const savedClient = await newClient.save();
