@@ -78,7 +78,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Operational errors (trusted errors)
   if (err.isOperational) {
-    return res.status(err.statusCode).json({
+    return res.status(err.statusCode || 500).json({
       status: 'error',
       message: err.message,
       ...(err.errors && { errors: err.errors })
@@ -86,11 +86,18 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Programming or unknown errors
+  // Log full error for debugging
+  console.error('Unhandled error:', {
+    name: err.name,
+    message: err.message,
+    stack: err.stack
+  });
+
   return res.status(500).json({
     status: 'error',
     message: process.env.NODE_ENV === 'production' 
       ? 'Something went wrong' 
-      : err.message
+      : err.message || 'Internal server error'
   });
 };
 

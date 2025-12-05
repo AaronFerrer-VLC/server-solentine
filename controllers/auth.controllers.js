@@ -1,7 +1,7 @@
 const User = require('../models/User.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { ConflictError, AuthenticationError, ValidationError } = require('../utils/errors');
+const { ConflictError, AuthenticationError, ValidationError, AppError } = require('../utils/errors');
 const saltRounds = 10;
 
 /**
@@ -80,14 +80,26 @@ const loginUser = async (req, res, next) => {
         }
 
         // Find user by email
-        const user = await User.findOne({ email });
+        let user;
+        try {
+            user = await User.findOne({ email });
+        } catch (dbError) {
+            console.error('Database error in login:', dbError);
+            return next(new AppError('Database error during login', 500));
+        }
 
         if (!user) {
             return next(new AuthenticationError('Invalid email or password'));
         }
 
         // Verify password
-        const isCorrectPwd = bcrypt.compareSync(password, user.password);
+        let isCorrectPwd;
+        try {
+            isCorrectPwd = bcrypt.compareSync(password, user.password);
+        } catch (bcryptError) {
+            console.error('Bcrypt error in login:', bcryptError);
+            return next(new AppError('Password verification error', 500));
+        }
 
         if (!isCorrectPwd) {
             return next(new AuthenticationError('Invalid email or password'));
@@ -95,21 +107,50 @@ const loginUser = async (req, res, next) => {
 
         // Check if TOKEN_SECRET is configured
         if (!process.env.TOKEN_SECRET) {
-            console.error('TOKEN_SECRET is not configured');
-            return next(new Error('Server configuration error'));
+            console.error('❌ TOKEN_SECRET is not configured in environment variables');
+            const configError = new AppError('Server configuration error: TOKEN_SECRET is missing', 500);
+            configError.isOperational = true;
+            return next(configError);
+        }
+
+        // Validate user has required fields
+        if (!user._id) {
+            console.error('User missing _id field');
+            return next(new AppError('User data error', 500));
         }
 
         // Generate JWT token
-        const payload = { userId: user._id, role: user.role };
+        const payload = { userId: user._id.toString(), role: user.role || 'user' };
 
-        const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
-            algorithm: 'HS256',
-            expiresIn: process.env.JWT_EXPIRES_IN || "6h",
-        });
+        let authToken;
+        try {
+            authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
+                algorithm: 'HS256',
+                expiresIn: process.env.JWT_EXPIRES_IN || "6h",
+            });
+        } catch (jwtError) {
+            console.error('JWT signing error:', jwtError);
+            return next(new AppError('Failed to generate authentication token', 500));
+        }
 
-        // Remove password from user object
-        const userResponse = user.toObject ? user.toObject() : { ...user._doc || user };
-        delete userResponse.password;
+        // Remove password from user object safely
+        let userResponse;
+        try {
+            userResponse = user.toObject ? user.toObject() : { ...(user._doc || user) };
+            delete userResponse.password;
+        } catch (objError) {
+            console.error('Error converting user to object:', objError);
+            // Fallback: create a safe user object
+            userResponse = {
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                avatar: user.avatar,
+                firstName: user.firstName,
+                familyName: user.familyName
+            };
+        }
 
         res.json({
             status: 'success',
@@ -118,6 +159,7 @@ const loginUser = async (req, res, next) => {
             user: userResponse
         });
     } catch (err) {
+        console.error('Login error:', err);
         next(err);
     }
 };
