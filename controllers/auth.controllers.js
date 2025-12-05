@@ -1,7 +1,7 @@
 const User = require('../models/User.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { ConflictError, AuthenticationError } = require('../utils/errors');
+const { ConflictError, AuthenticationError, ValidationError } = require('../utils/errors');
 const saltRounds = 10;
 
 /**
@@ -11,6 +11,15 @@ const saltRounds = 10;
 const signupUser = async (req, res, next) => {
     try {
         const { username, email, password, avatar, firstName, familyName, role } = req.body;
+
+        // Validate required fields
+        if (!username || !email || !password) {
+            return next(new ValidationError('Missing required fields', [
+                { field: !username ? 'username' : null, message: 'Username is required' },
+                { field: !email ? 'email' : null, message: 'Email is required' },
+                { field: !password ? 'password' : null, message: 'Password is required' }
+            ].filter(e => e.field)));
+        }
 
         // Check if user already exists
         const existingUser = await User.findOne({ 
@@ -44,7 +53,7 @@ const signupUser = async (req, res, next) => {
         });
 
         // Remove password from response
-        const userResponse = newUser.toObject();
+        const userResponse = newUser.toObject ? newUser.toObject() : { ...newUser._doc || newUser };
         delete userResponse.password;
 
         res.status(201).json({
@@ -65,6 +74,11 @@ const loginUser = async (req, res, next) => {
     try {
         const { password, email } = req.body;
 
+        // Validate required fields
+        if (!email || !password) {
+            return next(new AuthenticationError('Email and password are required'));
+        }
+
         // Find user by email
         const user = await User.findOne({ email });
 
@@ -79,6 +93,12 @@ const loginUser = async (req, res, next) => {
             return next(new AuthenticationError('Invalid email or password'));
         }
 
+        // Check if TOKEN_SECRET is configured
+        if (!process.env.TOKEN_SECRET) {
+            console.error('TOKEN_SECRET is not configured');
+            return next(new Error('Server configuration error'));
+        }
+
         // Generate JWT token
         const payload = { userId: user._id, role: user.role };
 
@@ -88,7 +108,7 @@ const loginUser = async (req, res, next) => {
         });
 
         // Remove password from user object
-        const userResponse = user.toObject();
+        const userResponse = user.toObject ? user.toObject() : { ...user._doc || user };
         delete userResponse.password;
 
         res.json({
