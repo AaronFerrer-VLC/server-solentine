@@ -13,12 +13,17 @@ const logger = defaultLogger.child('Validators');
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    logger.debug('Validation errors in auth', { errors: errors.array(), path: req.path });
-    const formattedErrors = errors.array().map(err => ({
-      field: err.path || err.param,
+    const errorArray = errors.array();
+    logger.debug('Validation errors in auth', { errors: errorArray, path: req.path });
+    
+    // Format errors - express-validator uses 'param' for the field name
+    const formattedErrors = errorArray.map(err => ({
+      field: err.param || err.path, // express-validator uses 'param'
       message: err.msg,
       value: err.value
     }));
+    
+    logger.debug('Formatted validation errors', { formattedErrors });
     return next(new ValidationError('Validation failed', formattedErrors));
   }
   next();

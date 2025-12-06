@@ -44,12 +44,20 @@ const errorHandler = (err, req, res, next) => {
   // This handles custom ValidationError from express-validator
   if (err.isOperational) {
     const statusCode = err.statusCode || 500;
-    logger.warn('Operational error', { name: err.name, message: err.message, statusCode });
-    return res.status(statusCode).json({
+    const responseData = {
       status: 'error',
       message: err.message,
       ...(err.errors && { errors: err.errors })
+    };
+    logger.warn('Operational error', { 
+      name: err.name, 
+      message: err.message, 
+      statusCode,
+      hasErrors: !!err.errors,
+      errorsCount: err.errors ? (Array.isArray(err.errors) ? err.errors.length : Object.keys(err.errors).length) : 0
     });
+    logger.debug('Sending response', { responseData });
+    return res.status(statusCode).json(responseData);
   }
 
   // Mongoose validation error (only if not operational)
