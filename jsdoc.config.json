@@ -1,0 +1,18 @@
+{
+  "source": {
+    "include": ["./controllers", "./models", "./services", "./utils", "./middlewares"],
+    "includePattern": "\\.js$",
+    "exclude": ["node_modules", "tests", "scripts"]
+  },
+  "opts": {
+    "destination": "./docs",
+    "recurse": true,
+    "template": "node_modules/docdash"
+  },
+  "plugins": ["plugins/markdown"],
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": true
+  }
+}
+

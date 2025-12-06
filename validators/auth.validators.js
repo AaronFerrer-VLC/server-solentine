@@ -5,11 +5,15 @@
 
 const { body, validationResult } = require('express-validator');
 const { ValidationError } = require('../utils/errors');
+const { defaultLogger } = require('../utils/logger');
+
+const logger = defaultLogger.child('Validators');
 
 // Validation result handler
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    logger.debug('Validation errors in auth', { errors: errors.array(), path: req.path });
     const formattedErrors = errors.array().map(err => ({
       field: err.path || err.param,
       message: err.msg,

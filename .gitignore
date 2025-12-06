@@ -6,10 +6,17 @@ npm-debug.log
 
 # Environment Variables should NEVER be published
 .env
+.env.*
+!.env.example
 .env.local
 .env.production
 .env.development
 .env.test
+.env.*.local
+*.pem
+*.key
+*secret*
+*password*
 
 # macOS
 .DS_Store

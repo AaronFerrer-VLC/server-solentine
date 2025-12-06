@@ -2,7 +2,10 @@ const User = require('../models/User.model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { ConflictError, AuthenticationError, ValidationError, AppError } = require('../utils/errors');
+const { defaultLogger } = require('../utils/logger');
 const saltRounds = 10;
+
+const logger = defaultLogger.child('AuthController');
 
 /**
  * Signup User Controller
@@ -74,21 +77,26 @@ const loginUser = async (req, res, next) => {
     try {
         const { password, email } = req.body;
 
-        // Validate required fields
+        // Log login attempt (without sensitive data)
+        logger.debug('Login attempt', { email: email ? 'provided' : 'missing', hasPassword: !!password });
+
+        // Validate required fields (this should be caught by validator, but double-check)
         if (!email || !password) {
+            logger.warn('Login failed: Missing email or password');
             return next(new AuthenticationError('Email and password are required'));
         }
 
-        // Find user by email
+        // Find user by email (explicitly select password field since it has select: false)
         let user;
         try {
-            user = await User.findOne({ email });
+            user = await User.findOne({ email }).select('+password');
         } catch (dbError) {
             console.error('Database error in login:', dbError);
             return next(new AppError('Database error during login', 500));
         }
 
         if (!user) {
+            logger.warn('Login failed: User not found', { email });
             return next(new AuthenticationError('Invalid email or password'));
         }
 
@@ -97,17 +105,20 @@ const loginUser = async (req, res, next) => {
         try {
             isCorrectPwd = bcrypt.compareSync(password, user.password);
         } catch (bcryptError) {
-            console.error('Bcrypt error in login:', bcryptError);
+            logger.error('Bcrypt error in login', bcryptError);
             return next(new AppError('Password verification error', 500));
         }
 
         if (!isCorrectPwd) {
+            logger.warn('Login failed: Incorrect password', { email });
             return next(new AuthenticationError('Invalid email or password'));
         }
 
+        logger.info('Login successful', { userId: user._id });
+
         // Check if TOKEN_SECRET is configured
         if (!process.env.TOKEN_SECRET) {
-            console.error('❌ TOKEN_SECRET is not configured in environment variables');
+            logger.error('TOKEN_SECRET is not configured in environment variables');
             const configError = new AppError('Server configuration error: TOKEN_SECRET is missing', 500);
             configError.isOperational = true;
             return next(configError);
@@ -115,7 +126,7 @@ const loginUser = async (req, res, next) => {
 
         // Validate user has required fields
         if (!user._id) {
-            console.error('User missing _id field');
+            logger.error('User missing _id field', { userId: user._id });
             return next(new AppError('User data error', 500));
         }
 
@@ -129,7 +140,7 @@ const loginUser = async (req, res, next) => {
                 expiresIn: process.env.JWT_EXPIRES_IN || "6h",
             });
         } catch (jwtError) {
-            console.error('JWT signing error:', jwtError);
+            logger.error('JWT signing error', jwtError);
             return next(new AppError('Failed to generate authentication token', 500));
         }
 
@@ -139,7 +150,7 @@ const loginUser = async (req, res, next) => {
             userResponse = user.toObject ? user.toObject() : { ...(user._doc || user) };
             delete userResponse.password;
         } catch (objError) {
-            console.error('Error converting user to object:', objError);
+            logger.error('Error converting user to object', objError);
             // Fallback: create a safe user object
             userResponse = {
                 _id: user._id,
@@ -159,7 +170,7 @@ const loginUser = async (req, res, next) => {
             user: userResponse
         });
     } catch (err) {
-        console.error('Login error:', err);
+        logger.error('Login error', err);
         next(err);
     }
 };

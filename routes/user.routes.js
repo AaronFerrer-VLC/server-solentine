@@ -8,17 +8,19 @@ const {
     filterUsers,
     deleteUser
 } = require('../controllers/user.controllers')
+const { validateUserUpdate, validateUserId, validateUserQuery, validateSearchQuery } = require('../validators/user.validators')
+const verifyToken = require('../middlewares/verifyToken')
 
 const router = express.Router()
 const upload = multer({ dest: 'uploads/' })
 
-router.get('/users/', getAllUsers)
+router.get('/users/', validateUserQuery, getAllUsers)
 router.get('/users/detailed', getAllUsersPopulated)
-router.get('/users/:id', getUser)
-router.put('/users/:id', upload.single('avatar'), editUser)
-router.delete('/users/:id', deleteUser)
+router.get('/users/:id', validateUserId, getUser)
+router.put('/users/:id', verifyToken, validateUserId, upload.single('avatar'), validateUserUpdate, editUser)
+router.delete('/users/:id', verifyToken, validateUserId, deleteUser)
 
-router.get('/users/search/:querySearch', async (req, res, next) => {
+router.get('/users/search/:querySearch', validateSearchQuery, async (req, res, next) => {
     const { querySearch } = req.params;
 
     try {

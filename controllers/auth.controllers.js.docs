@@ -1,0 +1,73 @@
+/**
+ * @fileoverview Authentication Controllers
+ * @module controllers/auth
+ */
+
+/**
+ * @typedef {Object} SignupData
+ * @property {string} username - Username (3-30 chars, alphanumeric)
+ * @property {string} email - Valid email address
+ * @property {string} password - Password (min 8 chars, uppercase, lowercase, number)
+ * @property {string} [avatar] - Avatar URL
+ * @property {string} [firstName] - First name
+ * @property {string} [familyName] - Family name
+ * @property {'user'|'admin'} [role] - User role (default: 'user')
+ */
+
+/**
+ * @typedef {Object} LoginData
+ * @property {string} email - User email
+ * @property {string} password - User password
+ */
+
+/**
+ * Signup User Controller
+ * 
+ * Creates a new user account with validation and password hashing
+ * 
+ * @async
+ * @function signupUser
+ * @param {Object} req - Express request object
+ * @param {SignupData} req.body - User signup data
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware
+ * @returns {Promise<void>}
+ * 
+ * @throws {ValidationError} If validation fails
+ * @throws {ConflictError} If email or username already exists
+ * 
+ * @example
+ * POST /api/auth/signup
+ * {
+ *   "username": "johndoe",
+ *   "email": "john@example.com",
+ *   "password": "SecurePass123"
+ * }
+ */
+// Implementation in auth.controllers.js
+
+/**
+ * Login User Controller
+ * 
+ * Authenticates user and returns JWT token
+ * 
+ * @async
+ * @function loginUser
+ * @param {Object} req - Express request object
+ * @param {LoginData} req.body - User login credentials
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware
+ * @returns {Promise<void>}
+ * 
+ * @throws {AuthenticationError} If credentials are invalid
+ * @throws {AppError} If server configuration is missing
+ * 
+ * @example
+ * POST /api/auth/login
+ * {
+ *   "email": "john@example.com",
+ *   "password": "SecurePass123"
+ * }
+ */
+// Implementation in auth.controllers.js
+

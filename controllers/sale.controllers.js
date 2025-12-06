@@ -2,6 +2,7 @@ const axios = require('axios')
 const mongoose = require('mongoose')
 const Sale = require('../models/Sale.model')
 const User = require('../models/User.model')
+const { NotFoundError } = require('../utils/errors')
 
 
 const getAllSales = async (req, res, next) => {
@@ -112,29 +113,33 @@ const saveSale = (req, res, next) => {
 }
 
 
-const deleteSale = (req, res, next) => {
-    const { id: saleId } = req.params;
+const deleteSale = async (req, res, next) => {
+    try {
+        const { id: saleId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(saleId)) {
-        res.status(404).json({ message: "Id format not valid" });
-        return;
-    }
+        if (!mongoose.Types.ObjectId.isValid(saleId)) {
+            return res.status(404).json({ message: "Id format not valid" });
+        }
 
-    Sale.findByIdAndDelete(saleId)
-        .then(sale => {
-            if (!sale) {
-                return res.status(404).json({ message: "Sale not found" });
-            }
-            const { owner } = sale
-            User.findByIdAndUpdate(
-                owner,
+        const sale = await Sale.findByIdAndDelete(saleId);
+        
+        if (!sale) {
+            return res.status(404).json({ message: "Sale not found" });
+        }
+
+        // Remove sale reference from user if exists
+        if (sale.createdBy) {
+            await User.findByIdAndUpdate(
+                sale.createdBy,
                 { $pull: { sales: saleId } },
                 { new: true, runValidators: true }
-            )
-                .then(() => res.sendStatus(200))
-                .catch(err => next(err))
-        })
-        .catch(err => next(err))
+            );
+        }
+
+        res.sendStatus(200);
+    } catch (err) {
+        next(err);
+    }
 }
 
 

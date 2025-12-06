@@ -1,26 +1,41 @@
+// Inicializar Sentry ANTES de cualquier otra cosa
+const { initSentry } = require('./config/sentry');
+initSentry();
+
+const { defaultLogger } = require('./utils/logger');
 const app = require("./app")
 
 const PORT = process.env.PORT || 5005
+const logger = defaultLogger.child('Server');
 
 /**
  * Manejo de errores no capturados
  * IMPORTANTE: Evita que la aplicación se cierre inesperadamente en producción
  */
 process.on('uncaughtException', (error) => {
-  console.error('❌ UNCAUGHT EXCEPTION - La aplicación se cerrará:', error)
-  console.error('Stack:', error.stack)
+  logger.error('UNCAUGHT EXCEPTION - La aplicación se cerrará', error, {
+    type: 'uncaughtException'
+  });
+  
+  const { captureException } = require('./config/sentry');
+  captureException(error, { type: 'uncaughtException' });
+  
   // En producción, es mejor cerrar y dejar que Fly.io reinicie
-  // Pero primero logueamos el error para debugging
   setTimeout(() => {
     process.exit(1)
   }, 1000) // Dar tiempo para que se escriban los logs
 })
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ UNHANDLED REJECTION en:', promise)
-  console.error('Razón:', reason)
+  logger.error('UNHANDLED REJECTION', reason, {
+    type: 'unhandledRejection',
+    promise: promise.toString()
+  });
+  
+  const { captureException } = require('./config/sentry');
+  captureException(reason, { type: 'unhandledRejection' });
+  
   // NO hacer process.exit() inmediatamente - puede ser un error recuperable
-  // Solo loguear para debugging
 })
 
 // Health check endpoint para Fly.io
@@ -34,22 +49,24 @@ app.get('/health', (req, res) => {
 
 // Iniciar servidor
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server is running on http://0.0.0.0:${PORT}`)
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`)
-  console.log(`🔗 Health check: http://0.0.0.0:${PORT}/health`)
+  logger.info('Server started', {
+    port: PORT,
+    environment: process.env.NODE_ENV || 'development',
+    healthCheck: `http://0.0.0.0:${PORT}/health`
+  });
 })
 
 // Manejo graceful de cierre del servidor
 process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, closing server gracefully...')
+  logger.info('SIGTERM received, closing server gracefully...');
   server.close(() => {
-    console.log('✅ Server closed')
+    logger.info('Server closed');
     process.exit(0)
   })
   
   // Force close after 10 seconds
   setTimeout(() => {
-    console.error('⚠️  Forcing server shutdown after timeout')
+    logger.warn('Forcing server shutdown after timeout');
     process.exit(1)
   }, 10000)
 })

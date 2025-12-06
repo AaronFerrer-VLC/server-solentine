@@ -1,4 +1,7 @@
 const mongoose = require("mongoose")
+const { defaultLogger } = require('../utils/logger')
+
+const logger = defaultLogger.child('Database')
 
 const MONGO_URI = process.env.MONGODB_URI
 
@@ -11,9 +14,10 @@ const MONGO_URI = process.env.MONGODB_URI
 const connectDB = async () => {
   // Verificar que MONGODB_URI esté configurada
   if (!MONGO_URI) {
-    console.error('❌ MONGODB_URI environment variable is not defined')
-    console.error('⚠️  La aplicación continuará pero las operaciones de BD fallarán')
-    console.error('💡 Configura MONGODB_URI en Fly.io: fly secrets set MONGODB_URI="tu-uri"')
+    logger.error('MONGODB_URI environment variable is not defined', null, {
+      action: 'database_connection',
+      status: 'failed'
+    });
     // NO hacer process.exit() - permite que la app inicie y muestre el error
     return null;
   }
@@ -34,58 +38,59 @@ const connectDB = async () => {
     const connection = await mongoose.connect(MONGO_URI, options)
     
     const dbName = connection.connections[0].name
-    console.log(`✅ Connected to MongoDB! Database: "${dbName}"`)
+    logger.info('Connected to MongoDB', { database: dbName })
 
     // Handle connection events
     mongoose.connection.on('error', (err) => {
-      console.error('❌ MongoDB connection error:', err.message)
+      logger.error('MongoDB connection error', err, { action: 'database_connection' })
       // NO hacer process.exit() - permite reconexión
     })
 
     mongoose.connection.on('disconnected', () => {
-      console.warn('⚠️  MongoDB disconnected - intentando reconectar...')
+      logger.warn('MongoDB disconnected - intentando reconectar...', { action: 'database_reconnection' })
       // Mongoose intentará reconectar automáticamente
     })
 
     mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB reconnected successfully')
+      logger.info('MongoDB reconnected successfully', { action: 'database_reconnection' })
     })
 
     mongoose.connection.on('connecting', () => {
-      console.log('🔄 Connecting to MongoDB...')
+      logger.debug('Connecting to MongoDB...', { action: 'database_connection' })
     })
 
     // Graceful shutdown
     process.on('SIGINT', async () => {
-      console.log('🛑 Received SIGINT, closing MongoDB connection...')
+      logger.info('Received SIGINT, closing MongoDB connection...', { action: 'shutdown' })
       try {
         await mongoose.connection.close()
-        console.log('✅ MongoDB connection closed gracefully')
+        logger.info('MongoDB connection closed gracefully', { action: 'shutdown' })
         process.exit(0)
       } catch (err) {
-        console.error('❌ Error closing MongoDB connection:', err)
+        logger.error('Error closing MongoDB connection', err, { action: 'shutdown' })
         process.exit(1)
       }
     })
 
     process.on('SIGTERM', async () => {
-      console.log('🛑 Received SIGTERM, closing MongoDB connection...')
+      logger.info('Received SIGTERM, closing MongoDB connection...', { action: 'shutdown' })
       try {
         await mongoose.connection.close()
-        console.log('✅ MongoDB connection closed gracefully')
+        logger.info('MongoDB connection closed gracefully', { action: 'shutdown' })
         process.exit(0)
       } catch (err) {
-        console.error('❌ Error closing MongoDB connection:', err)
+        logger.error('Error closing MongoDB connection', err, { action: 'shutdown' })
         process.exit(1)
       }
     })
 
     return connection
   } catch (err) {
-    console.error("❌ Error connecting to MongoDB:", err.message)
-    console.error("⚠️  La aplicación continuará ejecutándose")
-    console.error("💡 Verifica que MONGODB_URI sea correcta y que MongoDB esté accesible")
-    console.error("💡 Mongoose intentará reconectar automáticamente")
+    logger.error('Error connecting to MongoDB', err, {
+      action: 'database_connection',
+      status: 'failed',
+      willRetry: true
+    })
     
     // NO hacer process.exit(1) - esto causa reinicios infinitos en Fly.io
     // En su lugar, permitimos que la app inicie y Mongoose intentará reconectar
@@ -95,7 +100,7 @@ const connectDB = async () => {
 
 // Connect immediately (no bloquea el inicio del servidor)
 connectDB().catch(err => {
-  console.error('❌ Error inicial al conectar MongoDB:', err.message)
+  logger.error('Error inicial al conectar MongoDB', err, { action: 'database_initial_connection' })
   // NO hacer process.exit() - permite que el servidor inicie
 })
 

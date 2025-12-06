@@ -1,5 +1,5 @@
 const Client = require('../models/Client.model')
-
+const { NotFoundError } = require('../utils/errors');
 const { Client: GoogleMapsClient } = require('@googlemaps/google-maps-services-js');
 
 const googleMapsClient = new GoogleMapsClient({})
@@ -99,7 +99,13 @@ const createClient = async (req, res, next) => {
 
 const updateClient = async (req, res, next) => {
     try {
-        const updatedClient = await Client.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const client = await Client.findById(req.params.id);
+        
+        if (!client) {
+            return next(new NotFoundError('Client'));
+        }
+
+        const updatedClient = await Client.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
         res.json(updatedClient);
     } catch (err) {
         next(err);
@@ -108,7 +114,12 @@ const updateClient = async (req, res, next) => {
 
 const deleteClient = async (req, res, next) => {
     try {
-        await Client.findByIdAndDelete(req.params.id);
+        const client = await Client.findByIdAndDelete(req.params.id);
+        
+        if (!client) {
+            return next(new NotFoundError('Client'));
+        }
+
         res.json({ message: 'Client deleted' });
     } catch (err) {
         next(err);

@@ -10,11 +10,12 @@ const {
 } = require('../controllers/sale.controllers')
 
 const verifyToken = require("../middlewares/verifyToken")
+const { validateSale, validateSaleQuery } = require("../validators/sale.validators")
 
 const router = require("express").Router()
 
 
-router.get('/sales/search', async (req, res, next) => {
+router.get('/sales/search', validateSaleQuery, async (req, res, next) => {
     const { id, year, business, zone, brand, client, comercial, sortBy, dateBy, idBy, page, limit } = req.query;
 
     try {
@@ -25,13 +26,13 @@ router.get('/sales/search', async (req, res, next) => {
     }
 })
 
-router.post('/sales', verifyToken, saveSale);
+router.post('/sales', verifyToken, validateSale, saveSale);
 
 // Ruta para editar una venta (requiere autenticación)
-router.put('/sales/:id', verifyToken, editSale);
+router.put('/sales/:id', verifyToken, validateSale, editSale);
 
 // Ruta para obtener todas las ventas
-router.get('/sales', getAllSales);
+router.get('/sales', validateSaleQuery, getAllSales);
 
 // Ruta para obtener todas las ventas para la página de inicio
 router.get('/sales/all', getAllSalesForHomePage)

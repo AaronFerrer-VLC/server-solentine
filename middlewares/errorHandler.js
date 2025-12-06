@@ -3,30 +3,40 @@
  */
 
 const { AppError } = require('../utils/errors');
+const { defaultLogger } = require('../utils/logger');
+const { captureException } = require('../config/sentry');
+
+const logger = defaultLogger.child('ErrorHandler');
 
 const errorHandler = (err, req, res, next) => {
   // Set default error
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
-  // Log error in development
-  if (process.env.NODE_ENV === 'development') {
-    console.error('ERROR DETAILS:', {
-      message: err.message,
-      stack: err.stack,
-      method: req.method,
-      path: req.path,
+  // Log error con logger estructurado
+  const errorContext = {
+    method: req.method,
+    path: req.path,
+    statusCode: err.statusCode,
+    ...(process.env.NODE_ENV === 'development' && {
       body: req.body,
       params: req.params,
-      query: req.query
-    });
-  } else {
-    // Log minimal info in production
-    console.error('ERROR:', {
-      message: err.message,
-      method: req.method,
-      path: req.path,
-      statusCode: err.statusCode
+      query: req.query,
+      stack: err.stack
+    })
+  };
+
+  logger.error(err.message, err, errorContext);
+
+  // Enviar a Sentry si no es un error operacional
+  if (!err.isOperational && process.env.SENTRY_DSN) {
+    captureException(err, {
+      request: {
+        method: req.method,
+        path: req.path,
+        headers: req.headers
+      },
+      user: req.user ? { id: req.user._id } : undefined
     });
   }
 
@@ -78,19 +88,29 @@ const errorHandler = (err, req, res, next) => {
 
   // Operational errors (trusted errors)
   if (err.isOperational) {
-    return res.status(err.statusCode || 500).json({
+    const statusCode = err.statusCode || 500;
+    logger.warn('Operational error', { name: err.name, message: err.message, statusCode });
+    return res.status(statusCode).json({
       status: 'error',
       message: err.message,
       ...(err.errors && { errors: err.errors })
     });
   }
 
+  // Handle AuthenticationError specifically (should be operational, but double-check)
+  if (err.name === 'AuthenticationError') {
+    logger.warn('Authentication error', { message: err.message });
+    return res.status(401).json({
+      status: 'error',
+      message: err.message
+    });
+  }
+
   // Programming or unknown errors
-  // Log full error for debugging
-  console.error('Unhandled error:', {
+  // Estos errores se envían a Sentry
+  logger.error('Unhandled error', err, {
     name: err.name,
-    message: err.message,
-    stack: err.stack
+    type: 'unhandled'
   });
 
   return res.status(500).json({
