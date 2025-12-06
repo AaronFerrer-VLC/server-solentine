@@ -12,39 +12,39 @@ const saleSchema = new Schema(
         /** @type {Number} Legacy sale ID */
         Id: {
             type: Number,
-            required: [true, 'Sale ID is required'],
-            alias: 'saleId'
+            required: [true, 'Sale ID is required']
+            // Note: No alias needed - saleId field exists below
         },
         /** @type {Number} Legacy day (1-31) */
         Día: {
             type: Number,
             required: [true, 'Day is required'],
             min: 1,
-            max: 31,
-            alias: 'day'
+            max: 31
+            // Note: No alias needed - day field exists below
         },
         /** @type {Number} Legacy month (1-12) */
         Mes: {
             type: Number,
             required: [true, 'Month is required'],
             min: 1,
-            max: 12,
-            alias: 'month'
+            max: 12
+            // Note: No alias needed - month field exists below
         },
         /** @type {Number} Legacy year */
         Año: {
             type: Number,
             required: [true, 'Year is required'],
             min: 2000,
-            max: 2100,
-            alias: 'year'
+            max: 2100
+            // Note: No alias needed - year field exists below
         },
         /** @type {String} Legacy date string (DD/MM/YYYY) */
         Fecha: {
             type: String,
             required: [true, 'Date is required'],
-            match: [/^\d{2}\/\d{2}\/\d{4}$/, 'Date must be in DD/MM/YYYY format'],
-            alias: 'date'
+            match: [/^\d{2}\/\d{2}\/\d{4}$/, 'Date must be in DD/MM/YYYY format']
+            // Note: No alias needed - date field exists below
         },
         /** @type {String} Legacy business name */
         Negocio: {
@@ -55,39 +55,39 @@ const saleSchema = new Schema(
             validate: {
                 validator: Negocio => Negocio.length >= 1,
                 message: 'Business must be at least 1 character'
-            },
-            alias: 'business'
+            }
+            // Note: No alias needed - business field exists below
         },
         /** @type {Schema.Types.ObjectId} Legacy zone reference */
         Zona: {
             type: Schema.Types.ObjectId,
-            ref: 'Zone',
-            alias: 'zone'
+            ref: 'Zone'
+            // Note: No alias needed - zone field exists below
         },
         /** @type {Schema.Types.ObjectId} Legacy brand reference */
         Marca: {
             type: Schema.Types.ObjectId,
-            ref: 'Brand',
-            alias: 'brand'
+            ref: 'Brand'
+            // Note: No alias needed - brand field exists below
         },
         /** @type {Schema.Types.ObjectId} Legacy client reference */
         Cliente: {
             type: Schema.Types.ObjectId,
-            ref: 'Client',
-            alias: 'client'
+            ref: 'Client'
+            // Note: No alias needed - client field exists below
         },
         /** @type {Number} Legacy amount */
         Importe: {
             type: Number,
             required: [true, 'Amount is required'],
-            min: [0, 'Amount must be positive'],
-            alias: 'amount'
+            min: [0, 'Amount must be positive']
+            // Note: No alias needed - amount field exists below
         },
         /** @type {Schema.Types.ObjectId} Legacy commercial reference */
         Comercial: {
             type: Schema.Types.ObjectId,
-            ref: 'Comercial',
-            alias: 'commercial'
+            ref: 'Comercial'
+            // Note: No alias needed - commercial field exists below
         },
         
         // Normalized fields (English) - preferred going forward
