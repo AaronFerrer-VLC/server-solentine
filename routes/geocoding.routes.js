@@ -37,8 +37,20 @@ router.get('/coordinates', verifyToken, async (req, res, next) => {
         console.error(`ERROR GET /api/geocoding/coordinates: ${error.message}`, error.response?.data);
         
         // Manejar errores específicos de Google Maps
-        const statusCode = error.response?.status || 500;
-        const errorMessage = error.message || 'No se pudieron obtener las coordenadas';
+        let statusCode = error.response?.status || 500;
+        let errorMessage = error.message || 'No se pudieron obtener las coordenadas';
+        
+        // Mensajes más claros para errores comunes
+        if (error.message?.includes('referer restrictions')) {
+            statusCode = 503; // Service Unavailable
+            errorMessage = 'Error de configuración de Google Maps API. Contacta con el administrador.';
+        } else if (error.message?.includes('billing')) {
+            statusCode = 503;
+            errorMessage = 'El servicio de geocodificación no está disponible. Contacta con el administrador.';
+        } else if (error.code === 'REQUEST_DENIED') {
+            statusCode = 503;
+            errorMessage = 'Error de configuración de Google Maps API. Contacta con el administrador.';
+        }
         
         res.status(statusCode).json({ 
             status: 'error',
