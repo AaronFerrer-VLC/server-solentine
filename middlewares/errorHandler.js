@@ -40,8 +40,20 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
+  // Operational errors (trusted errors) - Check this BEFORE Mongoose errors
+  // This handles custom ValidationError from express-validator
+  if (err.isOperational) {
+    const statusCode = err.statusCode || 500;
+    logger.warn('Operational error', { name: err.name, message: err.message, statusCode });
+    return res.status(statusCode).json({
+      status: 'error',
+      message: err.message,
+      ...(err.errors && { errors: err.errors })
+    });
+  }
+
+  // Mongoose validation error (only if not operational)
+  if (err.name === 'ValidationError' && err.errors && typeof err.errors === 'object' && !Array.isArray(err.errors)) {
     const errors = Object.values(err.errors).map(e => ({
       field: e.path,
       message: e.message
@@ -83,17 +95,6 @@ const errorHandler = (err, req, res, next) => {
     return res.status(401).json({
       status: 'error',
       message: 'Token expired'
-    });
-  }
-
-  // Operational errors (trusted errors)
-  if (err.isOperational) {
-    const statusCode = err.statusCode || 500;
-    logger.warn('Operational error', { name: err.name, message: err.message, statusCode });
-    return res.status(statusCode).json({
-      status: 'error',
-      message: err.message,
-      ...(err.errors && { errors: err.errors })
     });
   }
 
